@@ -1,0 +1,18 @@
+{
+    "name": "hexmode/php-gerrit",
+    "description": "A simple interface for clients to interact with gerrit via the REST API",
+    "type": "library",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Mark A. Hershberger",
+            "email": "mah@nichework.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {"Hexmode\\PhpGerrit\\": "src/"}
+    },
+    "require": {
+		"fduch/netrc": "~1.0"
+	}
+}

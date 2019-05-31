@@ -1,0 +1,22 @@
+* phpGerrit
+
+This is a simple PHP interface to interact with Gerrit's REST API.
+
+It was written when I saw pygerrit2.
+
+** Installation
+
+To use phpGerrit in your project, simply:
+#+begin_src
+composer require hexmode/php-gerrit
+#+end_src
+
+** Usage
+#+begin_src php
+use hexmode\phpGerrit\GerritRestAPI;
+use hexmode\phpGerrit\HTTPBasicAuth;
+
+$auth = new HTTPBasicAuth( 'username', 'password' );
+$rest = new GerritRestAPI( [ 'url' => 'https;//gerrit.wikimedia.org', 'auth' => $auth ] );
+$changes = $rest->get( "/changes/?q=owner:self status:open" );
+#+end_src

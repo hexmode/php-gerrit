@@ -1,0 +1,11 @@
+### Emacs ###
+# -*- mode: gitignore; -*-
+*~
+\#*\#
+.\#*
+
+# flymake-mode
+*_flymake.*
+
+# Flycheck
+flycheck_*.el
