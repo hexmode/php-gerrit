@@ -1,0 +1,53 @@
+#!/usr/bin/env php
+<?php
+
+/*
+ * Copyright (C) 2019  Wikimedia Foundation
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Mark A. Hershberger <mah@nichework.com>
+ */
+
+namespace Wikimedia\Release;
+
+require __DIR__ . '/vendor/autoload.php';
+
+use Hexmode\PhpGerrit\GerritRestAPI;
+use splitbrain\phpcli\PSR3CLI;
+use splitbrain\phpcli\Options;
+use Fduch\Netrc\HTTPBasicAuth;
+
+class TestGerrit extends PSR3CLI {
+
+    protected $auth;
+    protected $gerrit;
+
+	protected function setup( Options $options ) {
+	}
+
+    protected function main( Options $opt ) {
+        $this->auth = new HTTPBasicAuth;
+		$this->gerrit = new GerritRestAPI( "https://gerrit.wikimedia.org/r", $this->auth );
+		$projects = $this->gerrit->get(
+			sprintf( '/projects/?p=mediawiki/%s&b=%s', 'skins', 'REL1_31' )
+		);
+		foreach ( $projects as $p => $info ) {
+			echo "$p\n";
+		}
+	}
+}
+
+$cli = new TestGerrit();
+$cli->run();

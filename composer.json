@@ -1,18 +1,43 @@
 {
-    "name": "hexmode/php-gerrit",
-    "description": "A simple interface for clients to interact with gerrit via the REST API",
-    "type": "library",
-    "license": "GPL-3.0-or-later",
-    "authors": [
-        {
-            "name": "Mark A. Hershberger",
-            "email": "mah@nichework.com"
-        }
-    ],
-    "autoload": {
-        "psr-4": {"Hexmode\\PhpGerrit\\": "src/"}
-    },
-    "require": {
-		"fduch/netrc": "~1.0"
+	"name": "hexmode/php-gerrit",
+	"minimum-stability": "dev",
+	"description": "A simple interface for clients to interact with gerrit via the REST API",
+	"type": "library",
+	"license": "GPL-3.0-or-later",
+	"authors": [
+		{
+			"name": "Mark A. Hershberger",
+			"email": "mah@nichework.com"
+		}
+	],
+	"autoload": {
+		"psr-4": {
+			"Hexmode\\PhpGerrit\\": "src/"
+		}
+	},
+	"require": {
+		"php": ">7.3",
+		"splitbrain/php-cli": "dev-compact-help",
+		"psr/log": "^1.1@dev",
+		"guzzlehttp/guzzle": "~6.0",
+		"fduch/netrc": "dev-feature/basic-auth",
+		"wikimedia/at-ease": "~2.0"
+	},
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/hexmode/php-cli"
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/hexmode/netrc"
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/hexmode/http-basic-auth"
+		}
+	],
+	"require-dev": {
+		"vimeo/psalm": "^3.0@dev"
 	}
 }
