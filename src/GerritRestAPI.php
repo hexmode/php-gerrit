@@ -94,7 +94,7 @@ class GerritRestAPI implements LoggerAwareInterface {
 		}
     }
 
-	protected function ensureLoggedIn() {
+	protected function ensureLoggedIn() :void {
 		$parts = $this->getParts();
 		$host = $parts['host'];
 		if ( !isset( $this->auth[$host] ) ) {
@@ -126,9 +126,9 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 * Make the full url for the endpoint.
 	 *
 	 * @param string $endpoint
-	 * @return string the full url
+	 * @return \Psr\Http\Message\UriInterface the full url
 	 */
-	protected function makeUrl( string $endpoint ) :Uri {
+	protected function makeUrl( string $endpoint ) :\Psr\Http\Message\UriInterface {
 		$parts = $this->getParts();
 		$eparts = parse_url( $endpoint );
 		if ( isset( $eparts['path'] ) ) {
@@ -171,6 +171,7 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 * @return array
 	 */
 	protected function parseContentType( array $headers ) {
+		$contentType = [];
 		$contentType['charset'] = 'unknown';
 		if ( isset( $headers['content-type'] ) ) {
 			$args = array_map(
