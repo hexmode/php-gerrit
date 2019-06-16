@@ -9,3 +9,6 @@
 
 # Flycheck
 flycheck_*.el
+
+vendor
+composer.lock
