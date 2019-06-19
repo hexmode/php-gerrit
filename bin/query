@@ -6,4 +6,3 @@ use Hexmode\PhpGerrit\GerritRestAPI;
 
 $rest = new GerritRestAPI( 'https://gerrit.wikimedia.org/r' );
 $changes = $rest->get( "/changes/?q=owner:self status:open" );
-$changes = $rest->get( "/changes/?q=owner:self status:open" );
