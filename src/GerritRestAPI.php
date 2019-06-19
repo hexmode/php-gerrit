@@ -102,7 +102,7 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 * @return bool
 	 */
 	protected function isLoggedIn() :bool {
-		return null === $this->jar->getCookieByName( self::COOKIE_NAME );
+		return null !== $this->jar->getCookieByName( self::COOKIE_NAME );
 	}
 
 	/**
