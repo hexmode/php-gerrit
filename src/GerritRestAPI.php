@@ -22,14 +22,13 @@ namespace Hexmode\PhpGerrit;
 
 use Exception;
 use Fduch\Netrc\Netrc;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Handler\CurlHandler;
 use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Psr7\Uri;
 use Hexmode\HTTPBasicAuth\Client as Auth;
 use Psr\Log\LoggerAwareInterface;
-use Psr\Log\NullLogger;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class GerritRestAPI implements LoggerAwareInterface {
 	/** @param string $url */
@@ -50,75 +49,97 @@ class GerritRestAPI implements LoggerAwareInterface {
 	protected $json;
 	/** @param array $parts */
 	protected $parts;
+	/** @param GuzzleHttp\Cookie\CookieJar $jar */
+	protected $jar;
 
 	const MAGIC_JSON_PREFIX = ")]}'\n";
 	const DEFAULT_HEADERS = [
 		'Accept' => 'application/json',
 		'Accept-Encoding' => 'gzip'
 	];
+	const COOKIE_NAME = "GerritAccount";
 
-    /**
-     * Interface to the Gerrit REST API.
-     *
-     * @param string $url The full URL to the server, including the
-     *  `http(s)://` prefix. If `auth` is given, `url` will be
-     *  automatically adjusted to include Gerrit's authentication
-     *  suffix.
-     * @param Auth $auth (optional) Auth handler
-     */
-    public function __construct(
-        string $url,
-        Auth $auth = null
-    ) {
+	/**
+	 * Interface to the Gerrit REST API.
+	 *
+	 * @param string $url The full URL to the server, including the
+	 *  `http(s)://` prefix. If `auth` is given, `url` will be
+	 *  automatically adjusted to include Gerrit's authentication
+	 *  suffix.
+	 * @param Auth|null $auth (optional) Auth handler
+	 */
+	public function __construct(
+		string $url,
+		Auth $auth = null
+	) {
 		$this->url = rtrim( $url, "/" );
 		$this->verify = true;
 		$this->logger = new NullLogger();
 
 		$this->auth = $auth;
-		if ( $this->auth === null) {
+		if ( $this->auth === null ) {
 			$this->auth = Netrc::Parse();
 		}
 
+		$this->jar = new CookieJar;
 		$this->client = new GuzzleClient(
 			[
 				'headers' => [
 					'Accept' => 'application/json',
 					'Accept-Encoding' => 'gzip'
-				],
-				'cookies' => true
+				]
 			]
 		);
 
 		if ( substr( $this->url, -1 ) !== "/" ) {
 			$this->url .= "/";
 		}
-    }
-
-	protected function ensureLoggedIn() :void {
-		$parts = $this->getParts();
-		$host = $parts['host'];
-		if ( !isset( $this->auth[$host] ) ) {
-			throw new Exception( "No auth for $host!" );
-		}
-		$auth = $this->auth[$host];
-		$this->client->request(
-			'POST', $this->makeUrl( 'login/' ), [
-				'debug' => true,
-				'form_params' => [
-					'username' => $auth['login'],
-					'password' => $auth['password']
-				]
-			]
-		);
 	}
 
-    /**
-     * Sets a logger instance on the object.
-     *
-     * @param LoggerInterface $logger
-     * @return void
-     */
-    public function setLogger( LoggerInterface $logger ) :void {
+	/**
+	 * sugar for logged in or not.
+	 *
+	 * @return bool
+	 */
+	protected function isLoggedIn() :bool {
+		return null === $this->jar->getCookieByName( self::COOKIE_NAME );
+	}
+
+	/**
+	 * Check to make sure we have a cookie, indicating that we're
+	 * logged in and log in otherwise.
+	 */
+	protected function ensureLoggedIn() :void {
+		if ( !$this->isLoggedIn() ) {
+			$parts = $this->getParts();
+			$host = $parts['host'];
+			if ( !isset( $this->auth[$host] ) ) {
+				throw new Exception( "No auth for $host!" );
+			}
+			$auth = $this->auth[$host];
+			$this->client->request(
+				'POST', $this->makeUrl( 'login/' ), [
+					'debug' => true,
+					'cookies' => $this->jar,
+					'form_params' => [
+						'username' => $auth['login'],
+						'password' => $auth['password']
+					]
+				]
+			);
+			if ( !$this->isLoggedIn() ) {
+				throw new Exception( "Couldn't log in!" );
+			}
+		}
+	}
+
+	/**
+	 * Sets a logger instance on the object.
+	 *
+	 * @param LoggerInterface $logger
+	 * @return void
+	 */
+	public function setLogger( LoggerInterface $logger ) :void {
 		$this->logger = $logger;
 	}
 
@@ -128,7 +149,9 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 * @param string $endpoint
 	 * @return \Psr\Http\Message\UriInterface the full url
 	 */
-	protected function makeUrl( string $endpoint ) :\Psr\Http\Message\UriInterface {
+	protected function makeUrl(
+		string $endpoint
+	) :\Psr\Http\Message\UriInterface {
 		$parts = $this->getParts();
 		$eparts = parse_url( $endpoint );
 		if ( isset( $eparts['path'] ) ) {
@@ -139,6 +162,11 @@ class GerritRestAPI implements LoggerAwareInterface {
 		return Uri::fromParts( $parts );
 	}
 
+	/**
+	 * Get the parts of a url.
+	 *
+	 * @return array
+	 */
 	protected function getParts() :array {
 		if ( !$this->parts ) {
 			$this->parts = parse_url( $this->url );
@@ -150,27 +178,32 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 * Sent HTTP GET to the endpoint.
 	 *
 	 * @param string $endpoint to send to.
-	 * @return array JSON decoded result
 	 *
-	 * @throw GuzzleHttp\Exception if the response contains an HTTP
+	 * @return array<string,mixed>
+	 *
+	 * @throws GuzzleHttp\Exception if the response contains an HTTP
 	 *   error status code.
 	 */
 	public function get( string $endpoint ) :array {
 		$this->ensureLoggedIn();
-        $this->response = $this->client->request(
-			'GET', $this->makeUrl( $endpoint ), ['debug' => true]
+		$this->response = $this->client->request(
+			'GET', $this->makeUrl( $endpoint ), [
+				'debug' => true,
+				'cookies' => $this->jar
+			]
 		);
 
-        return $this->decodeResponse();
+		return $this->decodeResponse();
 	}
 
 	/**
 	 * Parse out the Content-Type header
 	 *
 	 * @param array $headers
-	 * @return array
+	 *
+	 * @return array{charset:string, media-type?:string|null}
 	 */
-	protected function parseContentType( array $headers ) {
+	protected function parseContentType( array $headers ): array {
 		$contentType = [];
 		$contentType['charset'] = 'unknown';
 		if ( isset( $headers['content-type'] ) ) {
@@ -179,8 +212,8 @@ class GerritRestAPI implements LoggerAwareInterface {
 			);
 			$contentType['media-type'] = array_shift( $args );
 			if ( count( $args ) > 0 ) {
-				array_map( function( $arg ) use ( &$contentType ) {
-					list($name, $value) = array_map(
+				array_map( function ( $arg ) use ( &$contentType ) {
+					list( $name, $value ) = array_map(
 						'trim', explode( "=", $arg, 2 )
 					);
 					$contentType[$name] = $value;
@@ -194,9 +227,10 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 * Grab the Content-Encoding headers
 	 *
 	 * @param array $headers
-	 * @return array
+	 *
+	 * @return array<empty, empty>
 	 */
-	protected function parseContentEncoding( array $headers ) {
+	protected function parseContentEncoding( array $headers ): array {
 		$contentEncoding = [];
 		if ( isset( $headers['content-encoding'] ) ) {
 			$contentEncoding = array_map(
@@ -212,13 +246,13 @@ class GerritRestAPI implements LoggerAwareInterface {
 		return $contentEncoding;
 	}
 
-    /**
+	/**
 	 * Strip off Gerrit's magic prefix and decode a response.
 	 *
 	 * @return array<string, mixed> Decoded JSON content as a dict.
 	 *   If a JsonException is thrown, you can getBody() from the
 	 *   response.
-	 * @throw JsonException if problem occurs during JSON parsing.
+	 * @throws JsonException if problem occurs during JSON parsing.
 	 */
 	public function decodeResponse() :array {
 		if ( !$this->response ) {
@@ -226,13 +260,14 @@ class GerritRestAPI implements LoggerAwareInterface {
 		}
 		$headers = array_change_key_case( $this->response->getHeaders() );
 		$contentType = $this->parseContentType( $headers );
-		#$contentEncoding = $this->parseContentEncoding( $headers );
+		# $contentEncoding = $this->parseContentEncoding( $headers );
 
 		$this->logger->debug(
 			sprintf(
 				"status[%s] content_type[%s] encoding[%s]",
 				$this->response->getStatusCode(),
-				$contentType['media-type'], $contentType['charset']
+				$contentType['media-type'] ?? 'no-media-type',
+				$contentType['charset'] ?? 'no-charset'
 			)
 		);
 		$stream = $this->response->getBody()->getContents();

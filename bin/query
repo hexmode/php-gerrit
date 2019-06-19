@@ -5,7 +5,5 @@ require "vendor/autoload.php";
 use Hexmode\PhpGerrit\GerritRestAPI;
 
 $rest = new GerritRestAPI( 'https://gerrit.wikimedia.org/r' );
-$changes = $rest->get( "/changes/?q=owner:self" );
-foreach ( $changes as $change ) {
-	var_dump($change);
-}
+$changes = $rest->get( "/changes/?q=owner:self status:open" );
+$changes = $rest->get( "/changes/?q=owner:self status:open" );

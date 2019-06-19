@@ -27,10 +27,6 @@
 	"repositories": [
 		{
 			"type": "vcs",
-			"url": "https://github.com/hexmode/php-cli"
-		},
-		{
-			"type": "vcs",
 			"url": "https://github.com/hexmode/netrc"
 		},
 		{
@@ -39,6 +35,23 @@
 		}
 	],
 	"require-dev": {
-		"vimeo/psalm": "^3.0@dev"
+		"vimeo/psalm": "^3.0@dev",
+		"phpstan/phpstan": "^0.12.0@dev",
+		"mediawiki/mediawiki-codesniffer": "dev-master",
+		"jakub-onderka/php-parallel-lint": "dev-master"
+	},
+	"scripts": {
+		"lint": "parallel-lint --exclude vendor .",
+		"phpcs": "phpcs -p -s",
+		"psalm": "psalm",
+		"fix": [
+			"phpcbf",
+			"psalter --issues=all"
+		],
+		"test": [
+			"composer lint",
+			"composer phpcs",
+			"composer psalm"
+		]
 	}
 }
