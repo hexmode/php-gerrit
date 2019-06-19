@@ -1,4 +1,4 @@
-* phpGerrit
+* PhpGerrit
 
 This is a simple PHP interface to interact with Gerrit's REST API.
 
@@ -13,7 +13,7 @@ composer require hexmode/php-gerrit
 
 ** Usage
 #+BEGIN_SRC php 
-  use hexmode\phpGerrit\GerritRestAPI;
+  use Hexmode\PhpGerrit\GerritRestAPI;
 
   $rest = new GerritRestAPI( [ 'url' => 'https;//gerrit.wikimedia.org' ] );
   $changes = $rest->get( "/changes/?q=owner:self status:open" );
