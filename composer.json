@@ -16,8 +16,8 @@
 		}
 	},
 	"require": {
-		"php": ">7.3",
-		"splitbrain/php-cli": "dev-compact-help",
+		"php": ">=7.3",
+		"splitbrain/php-cli": "dev-master",
 		"psr/log": "^1.1@dev",
 		"guzzlehttp/guzzle": "~6.0",
 		"fduch/netrc": "dev-feature/basic-auth",
@@ -36,7 +36,6 @@
 	],
 	"require-dev": {
 		"vimeo/psalm": "^3.0@dev",
-		"phpstan/phpstan": "^0.12.0@dev",
 		"mediawiki/mediawiki-codesniffer": "dev-master",
 		"jakub-onderka/php-parallel-lint": "dev-master"
 	},
