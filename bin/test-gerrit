@@ -22,7 +22,7 @@
 
 namespace Wikimedia\Release;
 
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use Hexmode\PhpGerrit\GerritRestAPI;
 use splitbrain\phpcli\PSR3CLI;
@@ -31,21 +31,35 @@ use Fduch\Netrc\HTTPBasicAuth;
 
 class TestGerrit extends PSR3CLI {
 
-    protected $auth;
+	/** @var GerritRestAPI  $gerrit */
     protected $gerrit;
 
 	protected function setup( Options $options ) {
+		$this->gerrit = new GerritRestAPI( "https://gerrit.wikimedia.org/r" );
 	}
 
     protected function main( Options $opt ) {
-        $this->auth = new HTTPBasicAuth;
-		$this->gerrit = new GerritRestAPI( "https://gerrit.wikimedia.org/r", $this->auth );
 		$projects = $this->gerrit->get(
 			sprintf( '/projects/?p=mediawiki/%s&b=%s', 'skins', 'REL1_31' )
 		);
 		foreach ( $projects as $p => $info ) {
 			echo "$p\n";
 		}
+		$description = $this->gerrit->get(
+			'/projects/' . urlencode( 'mediawiki/extensions/WhoIsWatching' )
+			. '/description'
+		);
+		$this->gerrit->setDebug( true );
+		$resp = $this->gerrit->put(
+			'/projects/' . urlencode( 'mediawiki/extensions/WhoIsWatching' )
+			. '/description',
+			[
+				'description' => 'A MediaWiki extension to show users who ' .
+				'have a page in their watchlist as well as assign people ' .
+				'to watch a page.',
+				'commit_message' => 'test'
+			]
+		);
 	}
 }
 

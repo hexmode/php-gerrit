@@ -20,15 +20,11 @@
 		"splitbrain/php-cli": "dev-master",
 		"psr/log": "^1.1@dev",
 		"guzzlehttp/guzzle": "~6.0",
-		"fduch/netrc": "dev-feature/basic-auth",
+		"fduch/netrc": "*",
 		"wikimedia/at-ease": "~2.0",
-		"jakeasmith/http_build_url": "^1"
+		"hexmode/http-basic-auth": "*"
 	},
 	"repositories": [
-		{
-			"type": "vcs",
-			"url": "https://github.com/hexmode/netrc"
-		},
 		{
 			"type": "vcs",
 			"url": "https://github.com/hexmode/http-basic-auth"
