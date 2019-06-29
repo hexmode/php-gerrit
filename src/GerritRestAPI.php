@@ -26,6 +26,8 @@ use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Psr7\Uri;
 use Hexmode\HTTPBasicAuth\Client as Auth;
+use Hexmode\PhpGerrit\Entity;
+use Hexmode\PhpGerrit\Entity\BranchInfo;
 use Psr\Http\Message\UriInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
@@ -196,6 +198,20 @@ class GerritRestAPI implements LoggerAwareInterface {
 			$headers['headers']['X-Gerrit-Auth'] = $this->gerritAuth;
 		}
 		return $headers;
+	}
+
+	/**
+	 * Convenience function to get the branches for a project
+	 *
+	 * @param string $project name
+	 * @param array $options branch options
+	 * @return array<array-key, BranchInfo>
+	 */
+	public function getProjectBranches( string $project, array $options = [] ) :array {
+		$project = urlencode( $project );
+		return Entity::getList(
+			$this->get( "/projects/$project/branches/" ), BranchInfo::class
+		);
 	}
 
 	/**

@@ -15,7 +15,7 @@ composer require hexmode/php-gerrit
 #+BEGIN_SRC php 
   use Hexmode\PhpGerrit\GerritRestAPI;
 
-  $rest = new GerritRestAPI( [ 'url' => 'https;//gerrit.wikimedia.org' ] );
+  $rest = new GerritRestAPI( 'https;//gerrit.wikimedia.org' );
   $changes = $rest->get( "/changes/?q=owner:self status:open" );
   foreach ( $changes as $change ) {
       var_dump( $change );
