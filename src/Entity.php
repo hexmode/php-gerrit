@@ -34,12 +34,35 @@ class Entity {
 	public static function getList( array $list, string $class ) :array {
 		$ret = [];
 
-		foreach( $list as $item ) {
-			/** @psalm-suppress InvalidStringClass */
-			$ret[] = new $class( $item );
+		foreach( $list as $decodedJson ) {
+			$item = self::newFromDecodedJSON( $decodedJson, $class );
+			if ( method_exists( $item, 'getKey' ) ) {
+				$ret[$item->getKey()] = $item;
+			} else {
+				$ret[] = $item;
+			}
 		}
 
 		return $ret;
+	}
+
+	/**
+	 * Create a new entity from a single json bit
+	 *
+	 * @param mixed $json
+	 * @param string $class
+	 * @return Entity
+	 *
+	 * @psalm-suppress MoreSpecificReturnType
+	 * @psalm-suppress InvalidStringClass
+	 * @psalm-suppress LessSpecificReturnStatement
+	 */
+	public static function newFromDecodedJSON( $json, string $class ) :Entity {
+		$thisClass = self::class;
+		if ( !is_subclass_of( $class, $thisClass ) ) {
+			throw new Exception( "$class is not a subclass of $thisClass." );
+		}
+		return new $class( $json );
 	}
 
 	/**

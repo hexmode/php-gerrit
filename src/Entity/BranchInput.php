@@ -22,17 +22,14 @@ namespace Hexmode\PhpGerrit\Entity;
 
 use Hexmode\PhpGerrit\Entity;
 
-/** See https://gerrit.wikimedia.org/r/Documentation/rest-api-projects.html#branch-info */
-class BranchInfo extends Entity {
-	/** var string ref of branch*/
+/** See https://gerrit.wikimedia.org/r/Documentation/rest-api-projects.html#branch-input */
+class BranchInput extends Entity {
+	/** var string The name of the branch. The prefix refs/heads/ can be omitted.
+	 *	If set, must match the branch ID in the URL. */
 	protected $ref;
-	/** var string revision to which the branch points */
+	/** var string The base revision of the new branch.  If not set,
+	 *	HEAD will be used as base revision. */
 	protected $revision;
-	/** var bool Whether the calling user can delete this branch. */
-	protected $canDelete;
-	/** var WebLinkInfo[] Links to the branch in external sites as a
-	 * list of WebLinkInfo entries. ** NOT YET IMPLEMENTED ** */
-	protected $webLinks;
 
 	/**
 	 * Provide a shorter branch name as the key.

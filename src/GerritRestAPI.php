@@ -28,6 +28,7 @@ use GuzzleHttp\Psr7\Uri;
 use Hexmode\HTTPBasicAuth\Client as Auth;
 use Hexmode\PhpGerrit\Entity;
 use Hexmode\PhpGerrit\Entity\BranchInfo;
+use Hexmode\PhpGerrit\Entity\BranchInput;
 use Psr\Http\Message\UriInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
@@ -209,7 +210,25 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 */
 	public function getProjectBranches( string $project, array $options = [] ) :array {
 		$project = urlencode( $project );
+		$ret = [];
+
 		return Entity::getList(
+			$this->get( "/projects/$project/branches/" ), BranchInfo::class
+		);
+	}
+
+	/**
+	 * Convenience function to create a branch
+	 *
+	 * @param string $project name
+	 * @param BranchInput $branch information for creating
+	 * @return BranchInfo
+	 */
+	public function createBranch( string $project, BranchInput $branch ) :BranchInfo {
+		$project = urlencode( $project );
+		$ret = [];
+
+		return Entity::newFromDecodedJSON(
 			$this->get( "/projects/$project/branches/" ), BranchInfo::class
 		);
 	}
