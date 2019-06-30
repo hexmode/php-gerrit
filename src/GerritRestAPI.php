@@ -223,6 +223,9 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 * @param string $project name
 	 * @param BranchInput $branch information for creating
 	 * @return BranchInfo
+	 *
+	 * @psalm-suppress MoreSpecificReturnType
+	 * @psalm-suppress LessSpecificReturnStatement
 	 */
 	public function createBranch( string $project, BranchInput $branch ) :BranchInfo {
 		$project = urlencode( $project );
