@@ -29,6 +29,7 @@ use Hexmode\HTTPBasicAuth\Client as Auth;
 use Hexmode\PhpGerrit\Entity;
 use Hexmode\PhpGerrit\Entity\BranchInfo;
 use Hexmode\PhpGerrit\Entity\BranchInput;
+use Hexmode\PhpGerrit\Entity\DeleteBranchesInput;
 use Psr\Http\Message\UriInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
@@ -61,6 +62,8 @@ class GerritRestAPI implements LoggerAwareInterface {
 	protected $loggingIn;
 	/** @param bool $debug */
 	protected $debug;
+	/** @param bool */
+	protected $readOnly = false;
 
 	const MAGIC_JSON_PREFIX = ")]}'\n";
 	const DEFAULT_HEADERS = [
@@ -103,6 +106,13 @@ class GerritRestAPI implements LoggerAwareInterface {
 	}
 
 	/**
+	 * Set read-only
+	 */
+	public function setReadOnly() :void {
+		$this->readOnly = true;
+	}
+
+	/**
 	 * Enable or disable debugging.
 	 *
 	 * @param bool $debug
@@ -130,12 +140,15 @@ class GerritRestAPI implements LoggerAwareInterface {
 			if ( !$this->auth->hasCreds( $this->url ) ) {
 				throw new Exception( "No auth for {$this->url}!" );
 			}
+			$oldRO = $this->readOnly;
+			$this->readOnly = false;
 			$resp = $this->post(
 				'login/', [
 					'username' => $this->auth->getUsername( $this->url ),
 					'password' => $this->auth->getPassword( $this->url )
 				]
 			);
+			$this->readOnly = $oldRO;
 			if ( !$this->isLoggedIn() ) {
 				throw new Exception( "Couldn't log in!" );
 			}
@@ -218,22 +231,75 @@ class GerritRestAPI implements LoggerAwareInterface {
 	}
 
 	/**
+	 * Convenience function to delete a branch or branches for a project
+	 *
+	 * @param string $project name
+	 * @param array|string $branch one branch or an array of branches
+	 * @throw Exception
+	 */
+	public function deleteBranch( string $project, $branch ) :void {
+		$project = urlencode( $project );
+		$ret = null;
+
+		if ( is_array( $branch ) ) {
+			$ret = $this->post(
+				"/projects/$project/branches:delete", new DeleteBranchesInput( $branch )
+			);
+		} else {
+			$ret = $this->delete( "/projects/$project/branches/" . urlencode( $branch ) );
+		}
+	}
+	
+	/**
 	 * Convenience function to create a branch
 	 *
 	 * @param string $project name
-	 * @param BranchInput $branch information for creating
+	 * @param BranchInput|string $branch information for creating
 	 * @return BranchInfo
 	 *
 	 * @psalm-suppress MoreSpecificReturnType
 	 * @psalm-suppress LessSpecificReturnStatement
 	 */
-	public function createBranch( string $project, BranchInput $branch ) :BranchInfo {
+	public function createBranch( string $project, $branch ) :BranchInfo {
+		$project = urlencode( $project );
+
+		if ( is_string( $branch ) ) {
+			$branch = new BranchInput( [ 'ref' => $branch ] );
+		}
+		return Entity::newFromDecodedJSON(
+			$this->put(
+				"/projects/$project/branches/" . urlencode( $branch->ref ),
+				$branch
+			),
+			BranchInfo::class
+		);
+	}
+
+	/**
+	 * Convenience function to get branch information
+	 *
+	 * @param string $project name
+	 * @param string $branch name
+	 * @return array<BranchInfo>
+	 */
+	public function listBranches( string $project ) :array {
 		$project = urlencode( $project );
 		$ret = [];
 
-		return Entity::newFromDecodedJSON(
+		return Entity::getList(
 			$this->get( "/projects/$project/branches/" ), BranchInfo::class
 		);
+	}
+
+	public function getBranch(
+		string $project,
+		string $branch
+	) :?BranchInfo {
+		$branches = $this->listBranches( $project );
+		if ( isset( $branches[$branch] ) ) {
+			return $branches[$branch];
+		}
+		return null;
 	}
 
 	/**
@@ -256,6 +322,23 @@ class GerritRestAPI implements LoggerAwareInterface {
 	}
 
 	/**
+	 * Send HTTP DELETE to the endpoint.
+	 *
+	 * @param string $endpoint to send to.
+	 *
+	 * @return array<string,mixed>
+	 *
+	 * @throws GuzzleHttp\Exception if the response contains an HTTP
+	 *   error status code.
+	 */
+	public function delete( string $endpoint ) {
+		$this->ensureLoggedIn();
+		$this->response = $this->client->request(
+			'DELETE', $this->makeUrl( $endpoint ), $this->getStdParams()
+		);
+	}
+
+	/**
 	 * Send HTTP PUT to the endpoint.
 	 *
 	 * @param string $endpoint to send to.
@@ -268,12 +351,15 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 */
 	public function put( string $endpoint, $body ) {
 		$this->ensureLoggedIn();
-		$this->response = $this->client->request(
-			'PUT', $this->makeUrl( $endpoint ), array_merge(
-				$this->getStdParams(), [ 'json' => $body ]
-			)
-		);
-		return $this->decodeResponse();
+		if ( !$this->readOnly ) {
+			$this->response = $this->client->request(
+				'PUT', $this->makeUrl( $endpoint ), array_merge(
+					$this->getStdParams(), [ 'json' => $body ]
+				)
+			);
+			return $this->decodeResponse();
+		}
+		return [];
 	}
 
 	/**
@@ -289,12 +375,15 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 */
 	public function post( string $endpoint, array $params ) {
 		$this->ensureLoggedIn();
-		$this->response = $this->client->request(
-			'POST', $this->makeUrl( $endpoint ), array_merge(
-				$this->getStdParams(), [ 'form_params' => $params ]
-			)
-		);
-		return $this->decodeResponse();
+		if ( !$this->readOnly ) {
+			$this->response = $this->client->request(
+				'POST', $this->makeUrl( $endpoint ), array_merge(
+					$this->getStdParams(), [ 'form_params' => $params ]
+				)
+			);
+			return $this->decodeResponse();
+		}
+		return [];
 	}
 
 	/**
@@ -384,5 +473,9 @@ class GerritRestAPI implements LoggerAwareInterface {
 			$ret = json_decode( $stream, true, 512, JSON_THROW_ON_ERROR );
 		}
 		return $ret;
+	}
+
+	public function listFiles( $project, $commit ) {
+		return $this->get( "/projects/" . urlencode( $project ) . "/commits/$commit/files/" );
 	}
 }

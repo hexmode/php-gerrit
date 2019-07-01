@@ -90,4 +90,31 @@ class Entity {
 			$this->$property = $val;
 		}
 	}
+
+	/**
+	 * Get protect properties
+	 *
+	 * @return mixed
+	 */
+	public function __get( string $name ) {
+		if ( property_exists( $this, $name ) ) {
+			return $this->$name;
+		}
+		throw new Exception(
+			"No such property ($name) for " . get_class($this)
+		);
+	}
+
+	/**
+	 * String rep resentation of this object for POST and the like
+	 * @return string
+	 * @throw JsonException
+	 */
+	public function __toString() :string {
+		$ret = json_encode($this, JSON_THROW_ON_ERROR );
+		if ( $ret === false ) {
+			throw new Exception( "Something went wrong if you're seeing this." );
+		}
+		return $ret;
+	}
 }
