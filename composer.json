@@ -20,7 +20,7 @@
 		"splitbrain/php-cli": "dev-master",
 		"psr/log": "^1.1@dev",
 		"guzzlehttp/guzzle": "~6.0",
-		"fduch/netrc": "*",
+		"fduch/netrc": "~2.0",
 		"wikimedia/at-ease": "~2.0",
 		"hexmode/http-basic-auth": "*"
 	},

@@ -351,13 +351,16 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 */
 	public function put( string $endpoint, $body ) {
 		$this->ensureLoggedIn();
+		$resp = [];
 		if ( !$this->readOnly ) {
 			$this->response = $this->client->request(
 				'PUT', $this->makeUrl( $endpoint ), array_merge(
 					$this->getStdParams(), [ 'json' => $body ]
 				)
 			);
-			return $this->decodeResponse();
+			$resp = $this->decodeResponse();
+		} else {
+			$this->logger->debug( "skipping PUT to $endpoint" );
 		}
 		return [];
 	}
@@ -375,15 +378,18 @@ class GerritRestAPI implements LoggerAwareInterface {
 	 */
 	public function post( string $endpoint, array $params ) {
 		$this->ensureLoggedIn();
+		$resp = [];
 		if ( !$this->readOnly ) {
 			$this->response = $this->client->request(
 				'POST', $this->makeUrl( $endpoint ), array_merge(
 					$this->getStdParams(), [ 'form_params' => $params ]
 				)
 			);
-			return $this->decodeResponse();
+			$resp = $this->decodeResponse();
+		} else {
+			$this->logger->debug( "skipping POST to $endpoint" );
 		}
-		return [];
+		return $resp;
 	}
 
 	/**
